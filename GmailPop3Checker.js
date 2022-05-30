@@ -22,24 +22,30 @@
 
 
 function gcp3mn () {
+    var defaults = {
+        interval: 3, // Set this to the number of minutes you want to wait between checks
+        text_box: true,
+        time_countdown: true,
+        startup: true,
+    }
     var o = {
         interval: 250, // How often to check for page load. Default: 250 (1/4 second)
         max: 15000, // How long to check for page load. Default: 15000 (15 seconds)
         domain: location.protocol + '//' + location.hostname, // ie.: https://www.google.com
-        version: '2022.05.30', // Script version number used to check for updates
+        version: 'Static Versioned', // Script version number used to check for updates
         total: 0,
         init: function () {
             o.total += o.interval;
             // the newest banner
             var el = document.getElementById('gb');
             if (el) {
-                console.info("Newest Banner");
+                console.info("Gmail POP3 Checker => Newest Banner");
             }
             else {
                 // the somewhat new banner (the black strip)
                 el = document.getElementById('ogb-settings');
                 if (el) {
-                    console.info("Somewhat new banner (the black strip)");
+                    console.info("Gmail POP3 Checker => Somewhat new banner (the black strip)");
                 }
                 else {
                     // the old banner (still used in 3rd party accounts)
@@ -48,7 +54,7 @@ function gcp3mn () {
                         el = null;
                     }
                     else{
-                        console.info("The old banner (still used in 3rd party accounts");
+                        console.info("Gmail POP3 Checker => The old banner (still used in 3rd party accounts");
                     }
                 }
             }
@@ -59,6 +65,36 @@ function gcp3mn () {
                 window.setTimeout(o.init,o.interval);
             }
             return this;
+        },
+        // hack to call GM_xmlhttpRequest from an "unsafe window" since Gmail's Greasemonkey propriatory functions have been broken to do this since February 2010.
+        request: function (pUrl,pFunc,pMethod) {
+            pMethod = pMethod || 'GET';
+            if (!o.buffer.url) {
+                // the buffer is empty, so push it onto the request
+                o.buffer.url = pUrl;
+                o.buffer.func = pFunc;
+                o.buffer.method = pMethod;
+                window.setTimeout(o.buffer.start,0);
+            } else {
+                // the buffer is full (max 1), wait 10ms and try again
+                window.setTimeout(function(){o.request(pUrl,pFunc,pMethod)},10);
+            }
+        },
+        buffer: {
+            start: function () {
+                if (o.buffer.url != null) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open(o.buffer.method, o.buffer.url);
+                    xhr.onload = function() {
+                        o.buffer.func(xhr);
+                    };
+                    xhr.send();
+                    o.buffer.url = null;
+                }
+            },
+            url: null,
+            func: null,
+            method: null
         },
         core: {
             milliseconds: new Date(),
@@ -76,11 +112,11 @@ function gcp3mn () {
                 complete: new Array()
             },
             setting: {
-                interval: 10,
-                text: true,
-                time: true,
-                startup: true,
-                donationlink: true,
+                interval: defaults.interval,
+                text: defaults.text_box,
+                time: defaults.time_countdown,
+                startup: defaults.startup,
+                donationlink: false,
                 reporterror: true,
                 template: 0
             },
@@ -237,7 +273,8 @@ function gcp3mn () {
                     o.core.el.body.appendChild(document.createTextNode(' | ')); /* TODO: temporary */
                     o.core.el.body.style.whiteSpace = 'no-wrap';
                 }
-                if (o.version != '2022.05.13' && o.version != '12/26/2014' && o.version != '12/30/2014' && o.version != '2/17/2015' && o.version != '6/21/2016' && o.version != '6/30/2016' && o.version != '3/30/2020') {
+                if (o.version != 'Static Versioned') {
+                    console.error("Not using the static version somehow");
                     o.core.el.pop3.appendChild(document.createTextNode('POP3 Update Required'));
                     if (o.core.setting.template < 5) {
                         o.core.el.pop3.setAttribute('class', 'e gbgt');
@@ -249,7 +286,6 @@ function gcp3mn () {
                         }
                         return true;
                     }, true);
-                    o.core.el.pop3.setAttribute('href', 'https://www.danielslaughter.com/project/gmailpop3/files/gmailpop3.user.js');
                     o.core.el.pop3.style.color = 'red';
                     o.core.el.pop3.style.fontWeight = 'bold';
                     o.core.el.body.appendChild(o.core.el.pop3);
@@ -481,6 +517,7 @@ function gcp3mn () {
                         o.core.checking = false;
                     }
                     o.core.updateDisplay();
+                    o.core.pop();
                 };
                 var responseFunc = function(r) {
                     var temp = document.createElement('div');
@@ -589,10 +626,10 @@ function gcp3mn () {
                 }
             },
             settings: function() {
-                o.core.setting.interval = 10;
-                o.core.setting.text = true;
-                o.core.setting.time = true
-                o.core.setting.startup = true;
+                o.core.setting.interval = defaults.interval;
+                o.core.setting.text = defaults.text_box;
+                o.core.setting.time = defaults.time_countdown;
+                o.core.setting.startup = defaults.startup
                 o.core.setting.donationlink = false;
             },
             updateDisplay: function() {}
