@@ -723,12 +723,24 @@ function gcp3mn () {
 								if (r.status == '200') {
 									if (r.responseText.indexOf('[\u0022ama\u0022') !== -1) {
 										var str = r.responseText.substr(r.responseText.indexOf('[\u0022ama\u0022'));
-										str = str.substr(0, str.indexOf(',[]],[') + 4);
-										str = eval(str)[3];
-										if (str.length) {
-											for (var j=0;j<str.length;j++) {
-												o.core.request.account[j] = str[j][1];
-												o.core.request.id[j] = str[j][0];
+										var accounts = [];
+										var depth = 0;
+										for (var i = 0; i < str.length; i++) {
+											var char = str.charAt(i);
+											if (char === '[') {
+												depth++;
+											} else if (char === ']') {
+												depth--;
+												if (depth === 0) {
+													accounts = eval(str.substr(0, i + 1))[3];
+													break;
+												}
+											}
+										}
+										if (accounts.length) {
+											for (var j = 0; j < accounts.length; j++) {
+												o.core.request.account[j] = accounts[j][1];
+												o.core.request.id[j] = accounts[j][0];
 												o.core.request.url[j] = location.pathname + '?ui=2&ik=' + o.core.ik + '&at=' + o.core.at + '&view=up&act=cma_' + o.core.request.id[j] + '&pcd=1&mb=0&rt=h';
 											}
 										}
